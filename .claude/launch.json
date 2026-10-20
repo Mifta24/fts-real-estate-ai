@@ -1,0 +1,12 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "real-estate-ai-dev",
+            "runtimeExecutable": "sh",
+            "runtimeArgs": ["-c", "php artisan serve --port=${PORT:-8010}"],
+            "port": 8010,
+            "autoPort": true
+        }
+    ]
+}
