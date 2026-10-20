@@ -1,204 +1,127 @@
-# FTS HOTEL AI — User Flow
+# FTS REAL ESTATE AI — User Flow
 
 ## 1. Global User Flow
 
 ```text
-Open Website
+Open "/"
     ↓
-Opening Lobby
+Choose agency  →  "/{agencySlug}"
     ↓
-Click "Enter FTS HOTEL AI"
+Home: hero prompt + featured listings
     ↓
-Reception Scene
-    ↓
-AI Greeting
-    ↓
-Customer:
-    ├── asks a question
-    ├── checks rooms
-    ├── checks facilities
-    ├── starts reservation
-    └── asks for staff
+Visitor:
+    ├── asks Rumi
+    ├── browses listings
+    ├── reads the neighbourhood
+    ├── reads the guide
+    ├── books a viewing
+    └── asks for an agent
 ```
 
 ## 2. Opening Flow
+1. The opening page lists every published agency with its city and active listing count.
+2. The visitor chooses an agency and enters its showroom.
+3. If no agency is published, a "showroom is being prepared" message is shown.
 
-### Step 1
-Customer opens the website.
+## 3. Home Flow
+- The hero offers a free-text prompt ("Tell us what you are looking for") and example questions. Submitting it opens the advisor drawer with that question.
+- Featured listings link to their detail pages.
+- Each page change plays a short door chime and a one-line caption from the advisor (if sound is on).
 
-### Step 2
-System shows:
-- full-screen hotel lobby
-- FTS HOTEL AI logo
-- tagline
-- Enter button
-
-### Step 3
-Customer clicks:
-
-**Enter FTS HOTEL AI**
-
-### Step 4
-Transition to reception scene.
-
-No scrolling is required.
-
-## 3. Reception Flow
+## 4. Listing Flow
 
 ```text
-Reception Scene
+Listings
     ↓
-AI says welcome message
+Filter: sale / rent, property type; sort
     ↓
-Quick Actions appear
+Open a listing
     ↓
-Customer chooses action or types a question
+Gallery · specs · amenities · KPR simulator
+    ↓
+Visitor can:
+    ├── Ask Rumi about this listing
+    ├── Discuss the mortgage with Rumi
+    ├── Book a viewing
+    ├── Go to the previous / next listing
+    └── Back to all listings
 ```
 
-Quick Actions:
-- Check Rooms
-- Reservation
-- Facilities
-- Hotel Information
-- Talk to Staff
+Filtering is client side: every card is already in the page.
 
-## 4. Room Flow
+## 5. Mortgage Flow
+- Only listings for sale have a simulator.
+- The visitor chooses the down payment percentage and tenor; the server calculates the result from the listing price and the agency's rate. The browser never sends a price.
+- The result is indicative and always shows a disclaimer.
 
-```text
-Check Rooms
-    ↓
-AI asks optional dates / guest count
-    ↓
-Room options appear
-    ↓
-Customer selects room
-    ↓
-Room Scene opens
-    ↓
-AI explains selected room
-    ↓
-Customer can:
-    ├── Ask AI
-    ├── Next Room
-    ├── Previous Room
-    ├── Start Reservation
-    └── Back to Reception
-```
+## 6. Neighbourhood and Guide Flow
+- Neighbourhood lists active knowledge items of category `neighbourhood`; each has a detail page with distance and travel time.
+- The guide shows the agency profile and tabs for process (`buying`), `financing`, `legal` and `faq`.
+- Both offer "Ask Rumi" buttons that pass a question to the advisor.
 
-## 5. Facilities Flow
+## 7. Viewing Flow
 
 ```text
-Facilities
+Choose property
     ↓
-Facility menu / cards appear
+Pick date → free times appear
     ↓
-Customer selects facility
-    ↓
-Facility Scene / Panel opens
-    ↓
-AI explains details
-    ↓
-Back to Reception
-```
-
-## 6. Reservation Flow
-
-```text
-Reservation
-    ↓
-Check-in
-    ↓
-Check-out
-    ↓
-Guests
-    ↓
-Number of Rooms
-    ↓
-Preferred Room
-    ↓
-Customer Name
-    ↓
-Contact
+Name · contact method · number of visitors · payment plan · notes
     ↓
 Summary
     ↓
-Submit Request / WhatsApp
+Send viewing request → reference "SV-XXXXXX"
+    ↓
+Send summary to the agent on WhatsApp / call / email
 ```
 
-## 7. Human Handover Flow
+The draft survives a language switch or page change (kept in `sessionStorage`).
 
-Trigger:
-- user asks for staff
-- AI lacks confirmed information
-- payment issue
-- complaint
-- group booking
-- special price request
-- complex booking
+## 8. Human Handover Flow
 
-Flow:
+Triggers:
+- visitor asks for an agent
+- price negotiation or offer
+- mortgage application help
+- legal question not in the knowledge base
+- special request, complaint or payment problem
+- the advisor is not confident
 
 ```text
-AI detects handover need
+Advisor calls request_human_handover(reason, summary)
     ↓
-AI explains handover
+Conversation status → handed_over, handover request created (open)
     ↓
-Conversation summary prepared
+Agent opens it in /admin/handovers, reads the summary and history
     ↓
-Customer chooses:
-    ├── WhatsApp
-    ├── Phone
-    └── Email
+Agent replies from the panel; the visitor sees "An agent has replied"
+    ↓
+Agent resolves it → conversation returns to the AI
 ```
 
-## 8. Back Navigation
-Every scene must provide a clear way back.
+The Agents page also offers WhatsApp, phone and email buttons.
 
-Examples:
-- Back to Reception
-- Back to Lobby
-- Close Panel
+## 9. Back Navigation
+Every page is reachable from the numbered menu (and the bottom navigation on mobile). Listing and place pages have previous/next and "back to all" links. The conversation survives page changes through a visitor token stored in `localStorage`.
 
-The app should preserve:
-- conversation history
-- selected room
-- reservation progress
-- language
-
-## 9. Unknown Question Flow
+## 10. Unknown Question Flow
 
 ```text
-Customer asks something unclear
+Visitor asks something outside the data
     ↓
-AI asks one short clarification
+Advisor searches the knowledge base
     ↓
-If still unclear:
-show suggested actions
-    ↓
-If unresolved:
-offer staff handover
+Nothing found → says an agent will confirm, or hands over
 ```
 
-## 10. API Error Flow
-If AI fails:
+The advisor never guesses.
 
-- keep current scene
-- keep user input if possible
-- show short error
-- show Retry
-- keep staff contact available
+## 11. Off-topic or Offensive Messages
+- Off-topic requests (general knowledge, translation, role-play, calculations unrelated to the property) are declined briefly with an offer of what the advisor can do.
+- Rude, sexual or illegal messages are answered with a fixed refusal by the code, without reaching the model.
 
-## 11. No Matching Room
-If no room matches:
+## 12. Error Flow
+If the model server fails or is slow, the chat shows a short error with Retry and the "Talk to an agent" option. The visitor's message is kept; the page stays where it is.
 
-- AI explains no exact match was found
-- suggests alternatives
-- offers staff handover
-
-## 12. Returning Session
-If the session is still active:
-- do not restart the full opening experience unless user chooses to
-- restore current scene
-- restore selected room
-- restore reservation state
-- restore conversation
+## 13. No Matching Listing
+The advisor says no exact match exists, suggests nearby alternatives from the search results, and offers an agent.

@@ -1,156 +1,43 @@
-# FTS HOTEL AI — Admin CMS
+# FTS REAL ESTATE AI — Admin CMS
 
 ## 1. Objective
-The CMS manages all data used by FTS HOTEL AI without changing source code.
+Let an agency manage everything the showroom and the advisor use without touching code. The panel is at `/admin` (login at `/admin/login`).
 
-## 2. Main Admin Modules
-- Hotel Profile
-- Rooms
-- Facilities
-- Policies
-- FAQ
-- Knowledge Base
-- Reservation Requests
-- Conversation Logs
-- Handover Queue
-- Scene / Branding Settings
+## 2. Access and Roles
+- Staff sign in with email and password; five failed attempts per minute are throttled.
+- A user belongs to one or more agencies through `agency_users` with a role (`owner` or `agent`) and a status. The panel works on the first active agency of the user.
+- Every query is scoped to that agency; another agency's records return 404, and a user without an agency gets 403.
+- Roles currently do not change what the panel allows.
 
-## 3. Scene / Branding Settings
-New V2 requirement.
+## 3. Modules
 
-Admin should be able to manage:
-- FTS HOTEL AI logo
-- lobby background
-- reception background
-- AI receptionist image / avatar
-- tagline
-- Enter button text
-- default language
-- visual asset status
+### Dashboard
+Active listings, knowledge items, pending viewings and open handovers; the next upcoming viewings; the latest open handovers.
 
-Optional:
-- room scene background
-- facility scene background
-- loading image
+### Properties (`/admin/properties`)
+List (featured first), create, edit, delete (soft delete).
 
-## 4. Hotel Profile
-Editable:
-- name
-- description
-- address
-- phone
-- WhatsApp
-- email
-- check-in
-- check-out
-- supported languages
+Fields: name (slug is generated once and kept), listing type, property type, district, price, building and land size, bedrooms, bathrooms, carports, floors, certificate, furnishing, year built, amenities (comma separated, stored as keys), units available, featured, active, sort order, English and Japanese name and description.
 
-## 5. Rooms
-Admin can:
-- create room
-- edit room
-- upload images
-- set occupancy
-- set room size
-- set bed type
-- set price range
-- set breakfast
-- set smoking
-- activate / deactivate
+Photos: add by URL, delete, ordered. Setting `units_available` to 0 shows "Sold out" and closes viewings for that listing.
 
-## 6. Facilities
-Admin can:
-- create
-- edit
-- upload image
-- set opening hours
-- set fee
-- activate / deactivate
+### Knowledge items (`/admin/knowledge-items`)
+CRUD for the six categories (see `05_KNOWLEDGE_BASE_STRUCTURE.md`): title, body, `en` / `ja` translations, tags, distance, image URL (http or https only), active, sort order.
 
-## 7. Policies
-Manage:
-- check-in
-- check-out
-- cancellation
-- smoking
-- pets
-- children
-- deposit
-- payment
+### Viewings (`/admin/viewings`)
+Filter by status; see reference, property, visitor, date, time, contact, payment plan and notes. Actions: mark `confirmed`, `completed` or `cancelled`. Pending and confirmed requests hold their slot.
 
-## 8. FAQ
-Functions:
-- create
-- edit
-- language
-- category
-- order
-- status
+### Handovers (`/admin/handovers`)
+Open and resolved lists. The detail page shows the reason, the summary and the whole conversation. Actions:
+- **Reply**: stored as a message with role `agent`; the visitor sees it in the chat.
+- **Resolve**: marks the request resolved, records who resolved it, and returns the conversation to the AI.
 
-## 9. Knowledge
-Functions:
-- create / upload
-- edit
-- categorize
-- language
-- draft
-- approve
-- archive
-- re-index
+## 4. Not Managed Here
+The agency profile (name, contact, office hours, currency, mortgage rate, translations, cover image, publish status) and user accounts are edited in the database or seeders for now. Image upload is not available; use image URLs.
 
-Only approved content should reach production AI.
+## 5. Language
+The admin interface is in English. Content can carry Indonesian (default), English and Japanese texts.
 
-## 10. Reservation Requests
-List:
-- reference
-- guest
-- dates
-- guests
-- room
-- contact
-- status
-
-Actions:
-- open
-- contact guest
-- change status
-- add note
-
-## 11. Conversation Logs
-View:
-- messages
-- selected scene
-- selected room
-- reservation state
-- handover reason
-
-## 12. Handover Queue
-Statuses:
-- New
-- Assigned
-- Contacted
-- Closed
-
-## 13. Media Rules
-Allowed:
-- JPG
-- PNG
-- WebP
-- SVG for logo/icon if sanitized
-
-Recommended:
-- optimized image upload
-- thumbnail generation
-- file size limit
-- malware / file validation
-
-## 14. V1 Priority
-Must Have:
-- hotel
-- rooms
-- facilities
-- policies
-- FAQs
-- knowledge
-- reservation
-- lobby / receptionist branding assets
+## 6. Priorities
+Must have: properties, knowledge items, viewings, handovers.
+Next: agency profile editor, image upload, role-based permissions, conversation log browser.

@@ -1,168 +1,70 @@
-# FTS HOTEL AI — Scene & Asset List
+# FTS REAL ESTATE AI — Scenes & Assets
 
-## 1. Scene 0 — Opening Lobby
+## 1. Scenes
+Each scene is a Blade view with the same stage. `data-scene` and `data-page` tell the scripts and the advisor where the visitor is.
 
-Required:
-- lobby desktop background
-- lobby mobile background
-- FTS HOTEL AI logo
-- tagline
-- Enter button
-- optional language selector
+| Scene | View | Backdrop |
+|---|---|---|
+| Opening | `opening.blade.php` | agency cover |
+| Home | `site/home.blade.php` | first photo of the first featured listing (falls back to cover) |
+| Listings | `site/listings.blade.php` | agency cover |
+| Listing detail | `site/listing.blade.php` | the listing's primary photo (falls back to cover) |
+| Neighbourhood / place | `site/area.blade.php`, `place.blade.php` | agency cover / place photo |
+| Guide | `site/info.blade.php` | agency cover |
+| Agents | `site/agents.blade.php` | agency cover |
+| Viewing | `site/viewing.blade.php` | agency cover |
+| Advisor drawer | `site/advisor.blade.php` | included on every page |
 
-Suggested filenames:
+If an agency has no cover, a default stock photo is used.
 
-```text
-lobby-desktop.webp
-lobby-mobile.webp
-fts-hotel-ai-logo.svg
-```
+## 2. Images
+All images are referenced by URL; nothing is uploaded or resized by the app.
 
-## 2. Scene 1 — AI Reception
-Required:
-- reception desktop background
-- reception mobile background
-- AI receptionist / concierge image
-- chat UI
-- quick action icons
+Per agency:
+- `cover_path`: backdrop for the showroom (landscape, at least 1920×1080)
+- `logo_path`: optional; the brand mark falls back to the agency's initial
 
-Suggested:
+Per listing (`property_images`):
+- an exterior shot first (it becomes the card and backdrop image)
+- interior shots tagged `kitchen`, `bedroom`, `exterior`, `pool` … so the advisor can filter by `image_tag`
+- `alt_text` for accessibility
 
-```text
-reception-desktop.webp
-reception-mobile.webp
-ai-receptionist-default.webp
-```
+Per neighbourhood place: one photo URL (optional).
 
-Optional AI states:
-- greeting
-- listening
-- speaking
-- thinking
+## 3. Sound
+No audio files. `resources/js/sound.js` synthesises a door chime (page change), a "ding" (incoming message) and a tick (send) with the Web Audio API. The toggle is stored under `showroom_sound` in `localStorage`.
 
-## 3. Scene 2 — Rooms
-For every room:
-- hero image
-- gallery
-- thumbnail
-- optional background crop
+## 4. Narration
+`resources/js/narrator.js` types the page brief and, on request, reads it with the browser's speech synthesis. It picks a voice for the page language and prefers a female voice when one exists. The text comes from `lang/{id,en,ja}/site.php` (`narration.*`), filled with real counts, prices and the cheapest instalment.
 
-Example:
+## 5. Icons and Fonts
+Icons are inline SVG in `components/icon.blade.php`. Fonts are loaded through the `@fonts` directive (`fonts-manifest.dev.json` in development).
 
-```text
-rooms/
-  deluxe-king/
-    hero.webp
-    01.webp
-    02.webp
-    03.webp
-```
+## 6. Scripts and Styles
 
-## 4. Scene 3 — Facilities
-Assets:
-- restaurant
-- pool
-- gym
-- spa
-- meeting room
-- parking
-- airport transfer
+| File | Role |
+|---|---|
+| `resources/js/page.js` | page transitions, tour captions, handing a topic to the advisor |
+| `resources/js/advisor.js` | chat drawer, history, cards, drafts |
+| `resources/js/listings.js` | catalogue filters and sorting |
+| `resources/js/viewing.js` | viewing wizard |
+| `resources/js/narrator.js` | brief and speech |
+| `resources/js/sound.js` | UI sounds |
+| `resources/css/app.css` | all styles (Tailwind CSS 4) |
 
-## 5. Scene 4 — Reservation
-UI assets:
-- date icon
-- guest icon
-- room icon
-- contact icon
-- confirmation icon
+Built with Vite (`npm run build`).
 
-No separate large background is required if using modal / overlay.
+## 7. Performance
+- the first backdrop has `fetchpriority="high"`
+- listing filtering needs no requests
+- the history is loaded only when the drawer has a stored token
+- avoid giant source images; prefer compressed WebP or JPEG at 1920 px wide
 
-## 6. Scene 5 — Human Handover
-Assets:
-- WhatsApp icon
-- phone icon
-- email icon
-- optional staff / consultation visual
-
-## 7. AI Receptionist Requirements
-The character should:
-- look like hotel staff
-- remain visually consistent
-- use the same uniform
-- use similar lighting
-- be suitable for desktop and mobile crop
-
-Recommended:
-- transparent WebP / PNG when layering
-- high-resolution source retained separately
-
-## 8. Brand
-Required:
-- FTS HOTEL AI logo
-- favicon
-- light logo
-- dark logo
-- approved typography
-- brand color reference
-
-## 9. UI Icons
-- Enter
-- Rooms
-- Reservation
-- Facilities
-- Info
-- Staff
-- Microphone
-- Send
-- Back
-- Close
-- Language
-
-Prefer SVG.
-
-## 10. Image Size Guidance
-Desktop source:
-- minimum 1920×1080
-
-Mobile source:
-- minimum 1080×1920
-
-## 11. Performance
-- use WebP / AVIF where possible
-- compress
-- lazy-load non-current scenes
-- preload lobby and reception
-- do not load every room image at initial startup
-
-## 12. Asset Checklist
-
-### Opening Lobby
-- [ ] Desktop lobby
-- [ ] Mobile lobby
-- [ ] FTS HOTEL AI logo
-- [ ] Tagline
-- [ ] Enter button styling
-
-### Reception
-- [ ] Desktop reception background
-- [ ] Mobile reception background
-- [ ] AI receptionist
-- [ ] Action icons
-- [ ] Chat UI
-
-### Rooms
-- [ ] Room 1
-- [ ] Room 2
-- [ ] Room 3
-
-### Facilities
-- [ ] Restaurant
-- [ ] Pool
-- [ ] Gym
-- [ ] Other facilities
-
-### Responsive
-- [ ] Desktop crops
-- [ ] Tablet crops
-- [ ] Mobile crops
+## 8. Asset Checklist per Agency
+- [ ] Cover image
+- [ ] Logo (optional)
+- [ ] At least 3 active listings, each with 3+ photos
+- [ ] Neighbourhood places with distances
+- [ ] Knowledge items for every category
+- [ ] English and Japanese translations for the main texts
+- [ ] WhatsApp, phone and email filled in

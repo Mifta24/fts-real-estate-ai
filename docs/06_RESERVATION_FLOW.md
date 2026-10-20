@@ -1,164 +1,81 @@
-# FTS HOTEL AI — Reservation Flow
+# FTS REAL ESTATE AI — Viewing Flow
+
+The product does not take reservations or payments. The equivalent of a booking is a **viewing request** (a site visit), handled by `ViewingService`, which both the wizard and the advisor use so they can never disagree.
 
 ## 1. UX Principle
-Reservation must happen inside the fixed full-screen experience.
-
-Do not redirect the customer to a long standalone form.
-
-Use:
-- modal
-- right-side panel
-- scene change
-- step-by-step wizard
+A viewing is requested inside the showroom through a four-step wizard (`/{agencySlug}/viewing`) or through the advisor. The visitor is never sent to an external form.
 
 ## 2. Entry Points
-Reservation can start from:
-- Reception Scene
-- Room Scene
-- AI conversation
-- Facility / event conversation
-- direct reservation quick action
+- Menu item "Book a viewing"
+- "Book a viewing" button on a listing
+- Advisor cards after a listing detail or a mortgage simulation
+- The advisor's `create_viewing_request` tool
 
-## 3. Required Fields
-- Check-in
-- Check-out
-- Guests
-- Number of rooms
-- Preferred room
-- Customer name
-- Contact method
+## 3. Fields
 
-Optional:
-- children
-- special request
-- smoking preference
-- breakfast
-- accessibility needs
+Required:
+- property (an active listing that is still available)
+- viewing date
+- viewing time
+- name
+- contact method (`whatsapp`, `phone` or `email`) and its value
+- number of visitors
+- payment plan (`cash`, `mortgage`, `undecided`)
+
+Optional: notes (max 500 characters).
 
 ## 4. Step Flow
+1. **Property** — choose a listing.
+2. **Schedule** — choose a date; free times load from `POST /{agencySlug}/viewing/slots`.
+3. **Your details** — name, contact, visitors, payment plan, notes.
+4. **Summary** — review, Edit, Send.
 
-### Step 1 — Dates
-Ask:
-- check-in
-- check-out
+## 5. Rules
 
-### Step 2 — Guests
-Ask:
-- adults
-- children if needed
-- number of rooms
+| Rule | Value |
+|---|---|
+| Time slots | 09:00, 10:30, 13:00, 14:30, 16:00 |
+| Earliest date | tomorrow (agency timezone) |
+| Latest date | 60 days ahead |
+| Max visitors | 6 |
+| Slot capacity | one request per listing, date and time |
+| Counted as taken | `pending` and `confirmed` |
 
-### Step 3 — Room
-Use selected room if already chosen.
+Phone numbers must match `+?[0-9 -().]{6,20}`; emails must be valid.
 
-Otherwise:
-- ask preference
-or
-- recommend from known data
+## 6. Availability
+Slots are computed server side from existing requests. When a request is created, the slot is re-checked inside a transaction with a row lock. If it was taken in the meantime the API answers 422 with the remaining slots, and the visitor picks another time. Sold-out or inactive listings have no slots.
 
-### Step 4 — Customer
-Ask:
-- name
-- contact method
+## 7. Result
+The response contains:
+- `reference` (`SV-` plus six characters)
+- `status` (`pending`)
+- contact links: WhatsApp (`wa.me`), phone (`tel:`), email (`mailto:`), each prefilled with the summary in the visitor's language
 
-### Step 5 — Summary
-Show:
-- room
-- dates
-- guests
-- rooms
-- special request
-- contact
+The page states: "This is a viewing request. Our agent will confirm it. No payment is taken."
 
-Then:
-- Confirm Request
-- Edit
-- Back
-
-## 5. Date Validation
-Rules:
-- check-in cannot be in the past
-- check-out must be after check-in
-- use hotel timezone
-- invalid input should be corrected immediately
-
-## 6. Occupancy Validation
-Check:
-- room capacity
-- number of guests
-- number of rooms
-
-If capacity is exceeded:
-- suggest another room type
-- suggest multiple rooms
-- offer staff assistance
-
-## 7. Availability
-
-### If real-time system is connected
-Show actual availability.
-
-### If not connected
-Use:
-
-> This is a reservation request. Final availability will be confirmed by hotel staff.
-
-Never fake availability.
-
-## 8. Summary Example
+## 8. WhatsApp Message
+Prefilled text (localised):
 
 ```text
-Reservation Request
+Hello, I would like to schedule a property viewing.
 
-Room: Deluxe King Room
-Check-in: 10 October 2026
-Check-out: 13 October 2026
-Guests: 2
-Rooms: 1
-Name: John Tan
-Contact: WhatsApp
-Status: Awaiting Hotel Confirmation
+Name: {visitor_name}
+Property: {property}
+Date: {date}
+Time: {time}
+Visitors: {party_size}
+Payment plan: {payment_plan}
+Notes: {notes}
+
+Reference: {reference}
 ```
 
-## 9. WhatsApp Handover
-Suggested prefilled message:
+## 9. Statuses
+`pending` → `confirmed` → `completed`, or `cancelled`. Agents change the status in `/admin/viewings`; pending and confirmed requests hold the slot, completed and cancelled ones free it.
 
-```text
-Hello, I would like to request a reservation.
+## 10. Payment Rule
+Never collect card or bank data in the chat or the wizard. Payment-related questions are handed over to an agent (`payment_issue`).
 
-Name: {{name}}
-Check-in: {{check_in}}
-Check-out: {{check_out}}
-Guests: {{guests}}
-Rooms: {{rooms}}
-Room Type: {{room_type}}
-Special Request: {{special_request}}
-
-Reference: {{reference}}
-```
-
-## 10. Statuses
-Suggested backend statuses:
-- draft
-- awaiting_customer_confirmation
-- submitted
-- contacted
-- confirmed
-- rejected
-- cancelled
-
-## 11. Exit / Back
-At every reservation step:
-- Back
-- Close
-- Return to Reception
-
-Closing should not automatically delete progress.
-
-## 12. V1 Payment Rule
-Do not collect card data in AI chat.
-
-If payment is needed:
-- open official hotel payment process
-or
-- hand over to staff
+## 11. Draft Persistence
+The wizard keeps its step and values in `sessionStorage`, so a language switch or a page change does not lose them. The advisor also receives the draft so it can help with what is on screen.

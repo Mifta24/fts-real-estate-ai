@@ -1,169 +1,98 @@
-# FTS HOTEL AI — Testing Checklist
+# FTS REAL ESTATE AI — Testing Checklist
 
-## 1. Full-Screen Behavior
-- [ ] Body does not vertically scroll.
-- [ ] App fills 100vw × 100vh.
-- [ ] No unexpected scrollbar.
-- [ ] Internal panels scroll only when needed.
-- [ ] Browser resize does not break scene.
+## 1. Automated
+```bash
+composer test
+```
+Covers admin access (login redirect, per-agency isolation of viewings and handovers, reply and resolve, login rate limit, image URL validation) and `ContentGuard` (offensive and ordinary messages, language detection, localised refusal).
 
-## 2. Opening Lobby
-- [ ] Lobby image loads.
-- [ ] FTS HOTEL AI logo is correct.
-- [ ] Tagline is correct.
-- [ ] Enter button is visible.
-- [ ] Enter button works.
-- [ ] Transition to reception works.
-- [ ] No extra traditional navigation appears.
+Run `vendor/bin/pint --dirty` before committing PHP changes.
 
-## 3. Reception Scene
-- [ ] AI receptionist loads.
-- [ ] Greeting appears.
-- [ ] Quick actions appear.
-- [ ] Chat input works.
-- [ ] Microphone works if enabled.
-- [ ] Scene fits within viewport.
-- [ ] No whole-page scroll.
+## 2. Opening and Navigation
+- [ ] `/` lists only published agencies, with listing counts.
+- [ ] Entering an agency opens its home page.
+- [ ] Every menu item opens the right page and shows as current.
+- [ ] Language switch keeps the page and works for `id`, `en`, `ja`.
+- [ ] Unpublished or unknown slugs give 404.
+- [ ] No JavaScript: the notice and the agency phone are visible.
 
-## 4. Scene Switching
-Test:
-- [ ] Lobby → Reception
-- [ ] Reception → Rooms
-- [ ] Reception → Facilities
-- [ ] Reception → Reservation
-- [ ] Reception → Handover
-- [ ] Room → Reservation
-- [ ] Room → Reception
-- [ ] Facility → Reception
+## 3. Listings
+- [ ] Sale / rent and type filters, sort and count work.
+- [ ] The empty state appears when nothing matches.
+- [ ] Listing detail shows photos, specs, amenities, price (rent per year).
+- [ ] Previous / next and similar listings work.
+- [ ] A sold-out listing shows the notice and cannot be viewed.
 
-Verify:
-- [ ] smooth transition
-- [ ] state preserved
-- [ ] no duplicate scene
-- [ ] no broken animation
+## 4. Mortgage
+- [ ] Only sale listings show the simulator.
+- [ ] Down payment (10–90 %) and tenor (1–30) are enforced.
+- [ ] Results match the database price and the agency rate.
+- [ ] Disclaimer is visible.
 
-## 5. AI Chat
-- [ ] AI answers hotel questions.
-- [ ] AI knows current scene.
-- [ ] AI references selected room correctly.
-- [ ] AI does not invent availability.
-- [ ] AI does not invent pricing.
-- [ ] AI handles unknown data correctly.
-- [ ] AI offers staff handover when needed.
+## 5. Neighbourhood and Guide
+- [ ] Places list, detail, distance and photo.
+- [ ] Guide tabs show the matching categories.
+- [ ] "Ask Rumi" buttons open the drawer with the question.
 
-## 6. Rooms
-- [ ] Room list loads.
-- [ ] Images load.
-- [ ] Room data is correct.
-- [ ] Previous / Next works.
-- [ ] Reservation CTA works.
-- [ ] Back to Reception works.
+## 6. Advisor
+- [ ] Greeting and quick actions appear.
+- [ ] Asking for a house with a budget returns real cards.
+- [ ] "This house" on a listing page refers to that listing.
+- [ ] Mortgage questions call the simulator (figures match the page).
+- [ ] Unknown facts lead to "an agent will confirm" or a handover.
+- [ ] Replies follow the language of the message (id, en, ja).
+- [ ] Off-topic requests (translation, role-play, general questions) are declined.
+- [ ] Offensive messages get the fixed refusal.
+- [ ] Prices not from a tool are not stated.
+- [ ] History is restored after a reload.
+- [ ] 429 shows the "too quickly" message; a model outage shows Retry and Talk to an agent.
 
-## 7. Facilities
-- [ ] Facility list loads.
-- [ ] Images load.
-- [ ] Opening hours are correct.
-- [ ] AI answers facility questions.
-- [ ] Back works.
+## 7. Viewing
+- [ ] Dates before tomorrow and after 60 days are rejected.
+- [ ] Taken times are not offered; a race returns the remaining slots.
+- [ ] Invalid phone or email is rejected.
+- [ ] A request returns a reference and prefilled WhatsApp / phone / email links.
+- [ ] The draft survives a language switch.
+- [ ] The advisor can create a viewing and the admin sees it.
 
-## 8. Reservation
-- [ ] Check-in validation.
-- [ ] Check-out validation.
-- [ ] Guest count validation.
-- [ ] Occupancy validation.
-- [ ] Selected room preserved.
-- [ ] Name collected.
-- [ ] Contact collected.
-- [ ] Summary correct.
-- [ ] Edit works.
-- [ ] Submit works.
-- [ ] Reference generated.
+## 8. Handover
+- [ ] Asking for an agent creates an open handover with a useful summary.
+- [ ] While handed over, the AI stays silent and the visitor sees the agent notice.
+- [ ] An agent reply appears in the visitor's chat.
+- [ ] Resolve returns the conversation to the AI.
 
-## 9. Human Handover
-- [ ] Talk to Staff works.
-- [ ] WhatsApp link works.
-- [ ] Correct number used.
-- [ ] Prefilled summary works.
-- [ ] Phone link works if enabled.
-- [ ] Email link works if enabled.
+## 9. Admin
+- [ ] Admin screens redirect guests to login.
+- [ ] Staff only see their own agency's data; foreign records return 404.
+- [ ] Create, edit and delete a property; photos by URL; sold-out behaviour.
+- [ ] Knowledge items accept only http(s) image URLs.
+- [ ] Viewing status changes free or hold the slot.
+- [ ] Login is throttled after five attempts.
 
-## 10. Language
-- [ ] English UI.
-- [ ] Indonesian UI.
-- [ ] AI follows selected language.
-- [ ] Language switch preserves scene.
-- [ ] Language switch preserves session.
+## 10. Responsive
+Check 1920×1080, 1440×900, 1366×768, 1024×768, 768×1024, 390×844 and 360×800:
+- [ ] no horizontal scroll
+- [ ] menu becomes bottom navigation on mobile
+- [ ] advisor drawer usable on mobile
+- [ ] viewing wizard fits
 
-## 11. Responsive
-Test:
-- [ ] 1920×1080
-- [ ] 1440×900
-- [ ] 1366×768
-- [ ] 1024×768
-- [ ] 768×1024
-- [ ] 390×844
-- [ ] 360×800
+## 11. Sound and Narration
+- [ ] Nothing plays before a visitor action.
+- [ ] The toggle mutes and is remembered.
+- [ ] Listen reads the brief in the page language; Stop works.
+- [ ] Reduced-motion disables the page transition.
 
-Check:
-- [ ] no body scroll
-- [ ] receptionist crop
-- [ ] chat panel
-- [ ] quick actions
-- [ ] room visuals
-- [ ] reservation wizard
-
-## 12. Browser
+## 12. Browsers
 - [ ] Chrome
 - [ ] Safari
 - [ ] Edge
 - [ ] Mobile Safari
 - [ ] Mobile Chrome
 
-## 13. Performance
-- [ ] lobby image optimized
-- [ ] reception image optimized
-- [ ] non-current scenes lazy-loaded
-- [ ] room images lazy-loaded
-- [ ] no huge uncompressed assets
-- [ ] AI loading state shown immediately
-
-## 14. Error Handling
-Simulate:
-- [ ] AI API unavailable
-- [ ] slow AI
-- [ ] room API failure
-- [ ] facility API failure
-- [ ] network offline
-- [ ] invalid reservation
-- [ ] WhatsApp unavailable
-
-Expected:
-- [ ] user remains in current scene
-- [ ] Retry available
-- [ ] staff contact available
-- [ ] no lost reservation data if recoverable
-
-## 15. Security
-- [ ] admin protected
-- [ ] authorization tested
-- [ ] API keys server-side
-- [ ] rate limiting enabled
-- [ ] input validation enabled
-- [ ] upload validation enabled
-- [ ] no secret in frontend source
-- [ ] customer data access restricted
-
-## 16. Demo Readiness
-- [ ] Opening lobby looks final.
-- [ ] FTS HOTEL AI branding final.
-- [ ] Enter transition smooth.
-- [ ] Reception scene looks final.
-- [ ] AI demo questions tested.
-- [ ] At least 3 rooms loaded.
-- [ ] Facilities loaded.
-- [ ] Reservation tested end-to-end.
-- [ ] WhatsApp handover tested.
-- [ ] Desktop demo tested.
-- [ ] Mobile demo tested.
-- [ ] English tested.
-- [ ] Indonesian tested.
+## 13. Deployment
+- [ ] `npm run build` and `php artisan migrate --force` succeed.
+- [ ] `APP_ENV=production`, `APP_DEBUG=false`.
+- [ ] The demo seeder does not run in production.
+- [ ] The server can reach `LOCAL_LLM_BASE_URL`.
+- [ ] The advisor stays within the 85-second budget.
+- [ ] No secrets in the frontend source or the repository.

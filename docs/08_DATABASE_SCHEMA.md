@@ -1,200 +1,58 @@
-# FTS HOTEL AI — Database Schema
+# FTS REAL ESTATE AI — Database Schema
+
+SQLite by default. Migrations are in `database/migrations/` (`2026_09_17_0154xx_*`). Session, cache and queue use the `database` driver.
 
 ## 1. Core Tables
 
-### hotels
-- id
-- name
-- slug
-- description
-- address
-- city
-- country
-- phone
-- whatsapp
-- email
-- check_in_time
-- check_out_time
-- default_language
-- active
-- created_at
-- updated_at
+### agencies
+`id`, `name`, `slug` (unique), `custom_domain` (unique, nullable), `tagline`, `description`, `translations` (json: `en`/`ja` tagline and description), `address`, `city`, `country`, `latitude`, `longitude`, `phone`, `whatsapp`, `email`, `timezone` (Asia/Jakarta), `currency` (IDR), `default_locale` (id), `office_opens_at`, `office_closes_at`, `mortgage_rate` (default 7.5), `logo_path`, `cover_path`, `public_status` (`draft` | `published`), soft deletes, timestamps.
 
-### rooms
-- id
-- hotel_id
-- code
-- name
-- description
-- size_sqm
-- bed_type
-- max_adults
-- max_children
-- view_type
-- smoking_allowed
-- breakfast_included
-- price_min
-- price_max
-- currency
-- active
-- created_at
-- updated_at
+### agency_users
+`agency_id`, `user_id`, `role` (`owner` | `agent`), `status` (`active`), unique on agency + user. Pivot model `AgencyUser`.
 
-### room_images
-- id
-- room_id
-- image_url
-- alt_text
-- sort_order
-- active
+### properties
+`agency_id`, `name`, `slug` (unique per agency), `description`, `translations` (json), `listing_type` (`sale` | `rent`), `property_type` (`house`, `townhouse`, `apartment`, `shophouse`, `land`), `district`, `price` (decimal 15,2; rent is per year), `building_size_sqm`, `land_size_sqm`, `bedrooms`, `bathrooms`, `carports`, `floors`, `certificate` (`shm`, `hgb`, `strata`, `girik`), `furnishing` (`unfurnished`, `semi`, `full`), `year_built`, `amenities` (json list of keys), `units_available`, `is_featured`, `is_active`, `sort_order`, soft deletes.
 
-### room_amenities
-- id
-- room_id
-- name
-- description
-- icon
-- sort_order
+A property is available when it is active and has units left (`isAvailable()`).
 
-### facilities
-- id
-- hotel_id
-- name
-- slug
-- description
-- location
-- opening_time
-- closing_time
-- fee_text
-- image_url
-- active
+### property_images
+`property_id`, `image_path`, `image_url`, `tags` (json: kitchen, bedroom, exterior, pool …), `alt_text`, `sort_order`. The admin currently adds images by URL.
 
-### hotel_policies
-- id
-- hotel_id
-- policy_type
-- title
-- content
-- language
-- active
-- effective_from
-
-### faqs
-- id
-- hotel_id
-- category
-- question
-- answer
-- language
-- sort_order
-- active
-
-### knowledge_documents
-- id
-- hotel_id
-- title
-- category
-- language
-- content
-- source_type
-- status
-- version
-- approved_by
-- approved_at
+### agency_knowledge_items
+`agency_id`, `category` (`general`, `neighbourhood`, `buying`, `financing`, `legal`, `faq`), `title`, `body`, `translations`, `tags`, `image_url`, `distance`, `is_active`, `sort_order`. Index on agency + category.
 
 ### conversations
-- id
-- hotel_id
-- session_id
-- language
-- current_scene
-- selected_room_id
-- status
-- started_at
-- ended_at
+`agency_id`, `visitor_token` (uuid, unique), `visitor_name`, `visitor_email`, `locale`, `status` (`active` | `handed_over` | `closed`), `current_scene`, `selected_property_id`, `selected_place_id` (→ knowledge item), `viewing_state` (json draft), `handover_summary`, `last_message_at`.
 
-### messages
-- id
-- conversation_id
-- role
-- content
-- intent
-- model
-- latency_ms
-- metadata
-- created_at
+### conversation_messages
+`conversation_id`, `role` (`visitor`, `assistant`, `agent`, `system`), `content`, `ui_payload` (json cards), `tool_calls` (json log), timestamps.
 
-### reservation_requests
-- id
-- reference
-- hotel_id
-- conversation_id
-- room_id
-- check_in
-- check_out
-- adults
-- children
-- room_count
-- guest_name
-- contact_type
-- contact_value
-- special_request
-- status
-- submitted_at
+### viewing_appointments
+`reference` (unique, `SV-XXXXXX`), `agency_id`, `property_id`, `conversation_id` (nullable), `visitor_name`, `visitor_email`, `visitor_phone`, `contact_type` (`whatsapp`, `phone`, `email`), `viewing_date`, `viewing_time` (`HH:MM`), `party_size`, `payment_plan` (`cash`, `mortgage`, `undecided`), `status` (`pending`, `confirmed`, `completed`, `cancelled`), `notes`. Index on property + date + time.
 
-### handovers
-- id
-- conversation_id
-- reservation_request_id
-- channel
-- reason
-- summary
-- status
-- staff_user_id
-- created_at
+### handover_requests
+`conversation_id`, `reason` (`price_negotiation`, `mortgage_help`, `legal_question`, `special_request`, `complaint`, `payment_issue`, `low_confidence`), `summary`, `status` (`open` | `resolved`), `assigned_to` (user), `resolved_at`.
 
-## 2. Scene State
-Store scene-related state in `conversations` or `sessions`.
+### users, cache, jobs
+Laravel defaults.
 
-Recommended:
-- current_scene
-- selected_room_id
-- selected_facility_id
-- reservation_state
-- language
+## 2. Relationships
 
-## 3. Optional Session Table
-If needed:
+```text
+Agency ─┬─< Property ──< PropertyImage
+        ├─< AgencyKnowledgeItem
+        ├─< Conversation ─┬─< ConversationMessage
+        │                 ├─< ViewingAppointment (optional link)
+        │                 └─< HandoverRequest
+        ├─< ViewingAppointment >─ Property
+        └─>< User (agency_users: role, status)
+```
 
-### visitor_sessions
-- id
-- hotel_id
-- session_uuid
-- current_scene
-- language
-- selected_room_id
-- reservation_state_json
-- expires_at
-- created_at
-- updated_at
+## 3. Scene State
+Stored on the conversation: `current_scene`, `selected_property_id`, `selected_place_id` and `viewing_state`. They are refreshed on every advisor message and put into the prompt.
 
-## 4. Admin Users
-Use existing users table or:
+## 4. Seed Data
+`DemoAgencySeeder` (local and testing only) creates the owner `owner@ftsrealty.test`, the agency **FTS Realty** (`fts-realty`), seven listings (houses, townhouse, apartments, a shophouse and a land plot, for sale and for rent) with photos by URL, and knowledge items for each category.
 
-- id
-- hotel_id
-- name
-- email
-- password_hash
-- role
-- active
-
-## 5. Future Tables
-- room_inventory
-- room_rates
-- bookings
-- payments
-- integrations
-- promotions
-- analytics_events
-- guest_profiles
+## 5. Not Stored
+Payments, mortgage applications, visitor accounts and uploaded files do not exist in this schema.

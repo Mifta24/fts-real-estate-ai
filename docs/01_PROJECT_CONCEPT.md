@@ -1,275 +1,94 @@
-# FTS HOTEL AI — Project Concept
+# FTS REAL ESTATE AI — Project Concept
 
 ## 1. Project Name
-**FTS HOTEL AI**
+**FTS Real Estate AI**
 
 ## 2. Product Vision
-FTS HOTEL AI is a full-screen, one-page interactive hotel experience.
+FTS Real Estate AI is an interactive property showroom for real estate agencies.
 
-The website should feel like the customer is entering a real hotel lobby and being welcomed by an AI receptionist / concierge.
+A visitor should feel they are walking into an agency's showroom and being helped by a sharp, honest property consultant — **Rumi, the AI Property Advisor** — who can pull up real listings, photos, mortgage simulations and viewing slots on demand.
 
-This is **not** a traditional hotel website with long scrolling sections.
+This is **not** a classic listing portal with filters, long pages and a contact form. Every page is a fixed full-screen stage: a photo backdrop, a numbered menu, one content panel that scrolls on its own, and the advisor drawer that is available on every page.
 
-The entire experience runs inside a fixed viewport:
-
-- `height: 100vh`
-- `overflow: hidden`
-- no long vertical scrolling
-- scene-based navigation
-- chat, room information, reservation, facilities, and handover appear as overlays, panels, or scene transitions
+One installation serves many agencies. Each agency owns its pages at `/{agencySlug}` (or a custom domain) and its own data.
 
 ## 3. Core Experience
 
 ```text
-Open Website
+Open "/"
     ↓
-Opening Lobby
+Opening page (choose an agency)
     ↓
-[ Enter FTS HOTEL AI ]
+Agency home (stage + Rumi)
     ↓
-AI Receptionist
+Describe needs / browse
+    ├── Listings → Listing detail (photos, specs, KPR simulation)
+    ├── Neighbourhood → Place detail
+    ├── Guide (process, financing, legal, FAQ)
+    ├── Agents
+    └── Book a viewing
     ↓
-Choose Need / Ask AI
-    ↓
-Room / Facilities / Reservation / Hotel Info
-    ↓
-Human Handover if needed
+Human handover when needed
 ```
 
 ## 4. Main UX Principle
-The customer should never feel like they are browsing many pages.
+The visitor describes what they want in everyday words ("3-bedroom house under 2.5 billion near a school") and the advisor answers from controlled data. Browsing and chatting are one flow: the advisor knows which page and which listing is on screen, and the pages can hand a question to the advisor.
 
-Instead, the website behaves like an interactive application.
+## 5. Pages (scenes)
 
-Traditional structure to avoid:
+| Scene | Route | Purpose |
+|---|---|---|
+| Opening | `/` | Pick an agency |
+| Home | `/{agencySlug}` | Hero prompt, featured listings, how Rumi helps |
+| Listings | `/{agencySlug}/listings` | Catalogue with sale/rent, type and sort filters |
+| Listing detail | `/{agencySlug}/listings/{propertySlug}` | Gallery, specs, amenities, KPR simulator |
+| Neighbourhood | `/{agencySlug}/area`, `/area/{placeId}` | Schools, hospitals, malls, stations with distances |
+| Guide | `/{agencySlug}/guide` | About the agency; process, financing, legal, FAQ tabs |
+| Agents | `/{agencySlug}/agents` | Handover to an agent, WhatsApp, phone, email |
+| Viewing | `/{agencySlug}/viewing` | Four-step viewing request wizard |
 
-```text
-Home
-↓
-About
-↓
-Rooms
-↓
-Facilities
-↓
-Contact
-↓
-Footer
-```
+Admin lives at `/admin`.
 
-Target structure:
-
-```text
-Lobby
-↕
-Reception
-↕
-Room
-↕
-Facilities
-↕
-Reservation
-↕
-Staff Handover
-```
-
-## 5. Scene 0 — Opening Lobby
-This is the first screen.
-
-Purpose:
-- establish the hotel atmosphere
-- introduce the FTS HOTEL AI brand
-- provide one clear action to enter the experience
-
-Main elements:
-- full-screen luxury hotel lobby
-- FTS HOTEL AI logo
-- short tagline
-- one primary CTA
-
-Suggested CTA:
-
-**Enter FTS HOTEL AI**
-
-Alternative:
-
-**Enter Hotel**
-
-Suggested tagline:
-
-**AI Concierge for a Smarter Stay**
-
-or
-
-**Your Intelligent Hotel Experience**
-
-## 6. Scene 1 — AI Receptionist
-After pressing Enter, transition to a closer reception view.
-
-Main elements:
-- AI receptionist / concierge
-- hotel branding
-- AI greeting
-- quick action menu
-- chat input
-- optional microphone
-- no page scroll
-
-Suggested quick actions:
-- Check Rooms
-- Reservation
-- Facilities
-- Hotel Information
-- Talk to Staff
-
-Example greeting:
-
-> Welcome to FTS HOTEL AI. How can I assist you today?
-
-## 7. Scene 2 — Room Experience
-When the customer chooses rooms:
-
-- scene changes without leaving the app
-- room image / room visual becomes the main focus
-- AI remains available
-- room information appears in a panel
-- customer can continue chatting
-
-Information:
-- room name
-- room images
-- room size
-- bed type
-- occupancy
-- room facilities
-- price range
-- breakfast
-- smoking policy
-- availability status if connected
-
-Actions:
-- Ask AI
-- Previous Room
-- Next Room
-- Reservation
-- Back to Reception
-
-## 8. Scene 3 — Facilities
-Facilities appear as a full-screen scene or overlay.
-
-Possible categories:
-- Restaurant
-- Swimming Pool
-- Gym
-- Spa
-- Meeting Room
-- Parking
-- Wi-Fi
-- Airport Transfer
-
-Actions:
-- Ask About Facility
-- View Another Facility
-- Back to Reception
-
-## 9. Scene 4 — Reservation
-Reservation should be guided, not a long form.
-
-Steps:
-1. Check-in
-2. Check-out
-3. Guests
-4. Number of rooms
-5. Preferred room
-6. Customer name
-7. Contact
-8. Summary
-
-Final actions:
-- Submit Reservation Request
-- Send to WhatsApp
-- Contact Hotel Staff
-- Back
-
-## 10. Scene 5 — Human Handover
-If the user needs staff support:
-
-- AI explains that a hotel staff member can assist
-- conversation summary is prepared
-- user chooses a handover channel
-
-Channels:
-- WhatsApp
-- Phone
-- Email
-
-## 11. AI Concierge Role
-The AI acts like a professional hotel receptionist.
-
+## 6. AI Property Advisor Role
 Responsibilities:
-- welcome visitors
-- answer hotel questions
-- explain rooms
-- explain facilities
-- explain policies
-- support reservation requests
-- recommend suitable room types
-- hand over to staff when necessary
+- recommend listings from real, live data
+- show photos and specifications
+- run indicative KPR (mortgage) simulations
+- explain the neighbourhood, buying process, financing and legal topics from the knowledge base
+- check free viewing times and create viewing requests
+- hand over to a human agent when needed
 
-The AI must never invent hotel facts.
+The advisor must never invent agency facts, prices, stock, instalments or viewing times.
 
-## 12. Language
-V1:
-- English
-- Indonesian
+## 7. Language
+Indonesian (`id`), English (`en`) and Japanese (`ja`), chosen with `?lang=`. The advisor answers in the language the visitor writes in, falling back to the page language.
 
-Future:
-- Japanese
-- Chinese
-- Korean
+## 8. Current Scope
 
-## 13. V1 Scope
+### Included
+- multi-agency showroom with a fixed-stage layout
+- AI advisor with tool calling against controlled data
+- listing catalogue, listing detail and KPR simulator
+- neighbourhood and guide pages driven by the knowledge base
+- viewing request wizard with slot locking
+- agent handover with replies from the admin panel
+- admin panel: properties, knowledge items, viewings, handovers
+- optional narrator (browser speech) and synthesised UI sounds
+- deterministic content guard
 
-### Must Have
-- FTS HOTEL AI branding
-- 100vh full-screen layout
-- no long vertical scroll
-- opening lobby scene
-- Enter button
-- AI receptionist scene
-- room scene
-- facilities scene
-- reservation scene
-- AI chat
-- hotel knowledge base
-- WhatsApp / staff handover
-- desktop + mobile responsive
-- English + Indonesian
+### Not included
+- online payment of any kind
+- automatic confirmation of viewings or mortgages
+- bank / developer / portal integrations
+- visitor accounts
+- file uploads (images are referenced by URL)
 
-### Nice to Have
-- voice input
-- AI voice response
-- animated receptionist
-- advanced scene transitions
-- chat history panel
-
-### Not Required for V1
-- direct payment
-- PMS integration
-- OTA integration
-- full 3D hotel
-- real-time avatar lip-sync
-- autonomous final booking confirmation
-
-## 14. Success Criteria
-The V1 is successful when a visitor can:
-
-1. Open the website and see a hotel lobby.
-2. Enter FTS HOTEL AI from one clear button.
-3. Meet the AI receptionist.
-4. Ask questions naturally.
-5. View room options.
-6. Ask about facilities.
-7. Start a reservation.
-8. Contact human hotel staff.
-9. Complete the whole journey without scrolling through a long webpage.
+## 9. Success Criteria
+A visitor can:
+1. Open an agency page and see a property showroom.
+2. Describe what they need and get real listings.
+3. Open a listing, see photos and specifications.
+4. Simulate a mortgage.
+5. Read about the neighbourhood and the buying process.
+6. Request a viewing and get a reference number.
+7. Reach a human agent by chat handover, WhatsApp, phone or email.
