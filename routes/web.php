@@ -24,8 +24,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-        Route::resource('properties', PropertyController::class)->except('show');
-        Route::resource('knowledge-items', KnowledgeItemController::class)->except('show');
+        Route::resource('properties', PropertyController::class)->only('index');
+        Route::resource('knowledge-items', KnowledgeItemController::class)->only('index');
+
+        Route::middleware('can:manage-agency-content')->group(function () {
+            Route::resource('properties', PropertyController::class)->except(['index', 'show']);
+            Route::resource('knowledge-items', KnowledgeItemController::class)->except(['index', 'show']);
+        });
 
         Route::get('viewings', [AdminViewingController::class, 'index'])->name('viewings.index');
         Route::patch('viewings/{viewing}/status', [AdminViewingController::class, 'updateStatus'])->name('viewings.status');

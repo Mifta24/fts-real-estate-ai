@@ -128,4 +128,55 @@ class AdminAccessTest extends TestCase
 
         $this->assertSame('https://example.test/park.jpg', $item->fresh()->image_url);
     }
+
+    private function agentStaff(): User
+    {
+        $agent = User::factory()->create();
+        $this->agency->users()->attach($agent->id, ['role' => 'agent', 'status' => 'active']);
+
+        return $agent;
+    }
+
+    public function test_agents_can_list_but_not_manage_listings_and_knowledge_items(): void
+    {
+        $agent = $this->agentStaff();
+        $property = $this->agency->properties()->create(['name' => 'Own House', 'slug' => 'own-house', 'price' => 1]);
+        $item = $this->agency->knowledgeItems()->create(['category' => 'faq', 'title' => 'FAQ', 'body' => 'Answer', 'is_active' => true]);
+
+        $this->actingAs($agent)->get(route('admin.properties.index'))->assertOk()->assertDontSee(route('admin.properties.create'));
+        $this->actingAs($agent)->get(route('admin.knowledge-items.index'))->assertOk()->assertDontSee(route('admin.knowledge-items.create'));
+
+        $this->actingAs($agent)->get(route('admin.properties.create'))->assertForbidden();
+        $this->actingAs($agent)->get(route('admin.properties.edit', $property))->assertForbidden();
+        $this->actingAs($agent)->delete(route('admin.properties.destroy', $property))->assertForbidden();
+        $this->actingAs($agent)->get(route('admin.knowledge-items.create'))->assertForbidden();
+        $this->actingAs($agent)->delete(route('admin.knowledge-items.destroy', $item))->assertForbidden();
+
+        $this->assertModelExists($property);
+        $this->assertModelExists($item);
+    }
+
+    public function test_owners_can_manage_listings(): void
+    {
+        $property = $this->agency->properties()->create(['name' => 'Own House', 'slug' => 'own-house', 'price' => 1]);
+
+        $this->actingAs($this->staff)->get(route('admin.properties.create'))->assertOk();
+        $this->actingAs($this->staff)->delete(route('admin.properties.destroy', $property))->assertRedirect(route('admin.properties.index'));
+        $this->assertSoftDeleted($property);
+    }
+
+    public function test_agents_can_still_handle_viewings(): void
+    {
+        $viewing = ViewingAppointment::create([
+            'reference' => 'SV-OWN', 'agency_id' => $this->agency->id,
+            'property_id' => $this->agency->properties()->create(['name' => 'Own House', 'slug' => 'own-house', 'price' => 1])->id,
+            'visitor_name' => 'Visitor', 'viewing_date' => now()->addDays(3)->toDateString(), 'viewing_time' => '10:00',
+        ]);
+
+        $this->actingAs($this->agentStaff())
+            ->patch(route('admin.viewings.status', $viewing), ['status' => ViewingAppointment::STATUS_CONFIRMED])
+            ->assertRedirect();
+
+        $this->assertSame(ViewingAppointment::STATUS_CONFIRMED, $viewing->fresh()->status);
+    }
 }

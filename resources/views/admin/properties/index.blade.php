@@ -1,6 +1,8 @@
 <x-admin-layout title="Listings">
     <x-slot name="actions">
-        <a href="{{ route('admin.properties.create') }}" class="btn btn-dark btn-sm">Add listing</a>
+        @can('manage-agency-content')
+            <a href="{{ route('admin.properties.create') }}" class="btn btn-dark btn-sm">Add listing</a>
+        @endcan
     </x-slot>
 
     <div class="overflow-x-auto rounded-2xl border border-line bg-white">
@@ -33,11 +35,13 @@
                             </span>
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-right">
-                            <a href="{{ route('admin.properties.edit', $property) }}" class="text-ink hover:underline">Edit</a>
-                            <form method="POST" action="{{ route('admin.properties.destroy', $property) }}" class="inline" onsubmit="return confirm('Delete this listing?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="ml-3 text-red-600 hover:underline">Delete</button>
-                            </form>
+                            @can('manage-agency-content')
+                                <a href="{{ route('admin.properties.edit', $property) }}" class="text-ink hover:underline">Edit</a>
+                                <form method="POST" action="{{ route('admin.properties.destroy', $property) }}" class="inline" onsubmit="return confirm('Delete this listing?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="ml-3 text-red-600 hover:underline">Delete</button>
+                                </form>
+                            @endcan
                         </td>
                     </tr>
                 @empty

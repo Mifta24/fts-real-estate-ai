@@ -43,4 +43,9 @@ class User extends Authenticatable
     {
         return $this->agencies()->wherePivot('status', 'active')->first();
     }
+
+    public function isOwnerOfCurrentAgency(): bool
+    {
+        return $this->currentAgency()?->pivot->role === AgencyUser::ROLE_OWNER;
+    }
 }
