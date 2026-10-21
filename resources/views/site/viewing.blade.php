@@ -109,6 +109,7 @@
                     <div data-step="4" class="wizard-step" hidden>
                         <dl class="wizard-summary" data-summary></dl>
                         <p class="wizard-hint">{{ __('site.viewing.disclaimer') }}</p>
+                        <p class="wizard-hint">{{ __('site.viewing.privacy', ['days' => config('retention.viewing_days')]) }}</p>
                     </div>
 
                     <div class="wizard-error" data-wizard-error role="alert" hidden></div>

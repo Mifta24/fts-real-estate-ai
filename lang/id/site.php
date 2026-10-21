@@ -259,6 +259,7 @@ return [
         'next' => 'Lanjut',
         'back' => 'Kembali',
         'edit' => 'Ubah',
+        'privacy' => 'Nama dan kontak Anda hanya dipakai untuk mengatur survei ini, dan dihapus :days hari setelah tanggal survei.',
         'submit' => 'Kirim permintaan survei',
         'sending' => 'Mengirim…',
         'property' => 'Properti',

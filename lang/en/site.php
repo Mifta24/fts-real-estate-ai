@@ -259,6 +259,7 @@ return [
         'next' => 'Next',
         'back' => 'Back',
         'edit' => 'Edit',
+        'privacy' => 'We use your name and contact details only to arrange this viewing, and erase them :days days after the viewing date.',
         'submit' => 'Send viewing request',
         'sending' => 'Sending…',
         'property' => 'Property',
