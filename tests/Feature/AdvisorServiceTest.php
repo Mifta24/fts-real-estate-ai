@@ -70,6 +70,16 @@ class AdvisorServiceTest extends TestCase
             && $request['messages'][0]['role'] === 'system');
     }
 
+    public function test_a_base_url_that_already_ends_in_v1_still_reaches_the_chat_endpoint(): void
+    {
+        config(['services.local_llm.base_url' => 'http://llm.test/v1/']);
+        Http::fake(['llm.test/*' => Http::response($this->completion('Hi!'))]);
+
+        $this->advisor->reply($this->agency, $this->conversation, 'Hello');
+
+        Http::assertSent(fn (Request $request) => $request->url() === 'http://llm.test/v1/chat/completions');
+    }
+
     public function test_tool_calls_are_executed_and_their_cards_are_attached_to_the_reply(): void
     {
         Http::fake(['llm.test/*' => Http::sequence()

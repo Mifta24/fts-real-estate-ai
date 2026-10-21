@@ -268,7 +268,7 @@ class AdvisorService
 
         $response = Http::withToken(config('services.local_llm.api_key'))
             ->timeout(min(self::REQUEST_TIMEOUT_SECONDS, (int) ceil($remaining)))
-            ->post(rtrim(config('services.local_llm.base_url'), '/').'/v1/chat/completions', [
+            ->post($this->chatCompletionsUrl(), [
                 'model' => config('services.local_llm.model'),
                 'messages' => $messages,
                 'tools' => $tools,
@@ -293,6 +293,17 @@ class AdvisorService
             'content' => $message['content'] ?? null,
             'tool_calls' => $message['tool_calls'] ?? null,
         ];
+    }
+
+    /**
+     * Accepts the server address with or without a trailing /v1, so a base
+     * URL copied from LM Studio or Ollama does not end up as /v1/v1.
+     */
+    private function chatCompletionsUrl(): string
+    {
+        $base = preg_replace('#/v1$#', '', rtrim((string) config('services.local_llm.base_url'), '/'));
+
+        return $base.'/v1/chat/completions';
     }
 
     private function buildHistory(Conversation $conversation): array
