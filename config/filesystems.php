@@ -28,6 +28,18 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Property Image Disk
+    |--------------------------------------------------------------------------
+    |
+    | The disk that holds photos uploaded for listings. It must be publicly
+    | readable (the "public" disk after `php artisan storage:link`, or "s3").
+    |
+    */
+
+    'property_images_disk' => env('PROPERTY_IMAGES_DISK', 'public'),
+
     'disks' => [
 
         'local' => [

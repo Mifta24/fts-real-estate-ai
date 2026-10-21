@@ -9,7 +9,7 @@
         <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $errors->first() }}</div>
     @endif
 
-    <form method="POST" action="{{ $isEdit ? route('admin.properties.update', $property) : route('admin.properties.store') }}" class="space-y-6">
+    <form method="POST" action="{{ $isEdit ? route('admin.properties.update', $property) : route('admin.properties.store') }}" class="space-y-6" enctype="multipart/form-data">
         @csrf
         @if ($isEdit) @method('PUT') @endif
 
@@ -128,7 +128,7 @@
                         <div class="flex items-center gap-3 rounded-xl border border-line p-2">
                             <img src="{{ $image->image_source }}" alt="{{ $image->alt_text }}" class="h-14 w-20 rounded-lg object-cover">
                             <div class="min-w-0 flex-1 text-xs text-muted">
-                                <p class="truncate">{{ $image->image_url }}</p>
+                                <p class="truncate">{{ $image->image_url ?? $image->image_path }}</p>
                                 <p>{{ __('admin.listing_form.tags') }}: {{ implode(', ', $image->tags ?? []) }}</p>
                             </div>
                             <label class="flex items-center gap-1 text-xs text-red-600">
@@ -142,9 +142,10 @@
 
             <p class="mt-4 text-xs text-muted">{{ __('admin.listing_form.photos_hint') }}</p>
             @for ($i = 0; $i < 3; $i++)
-                <div class="mt-2 grid grid-cols-6 gap-2">
-                    <input type="url" name="new_images[{{ $i }}][url]" placeholder="https://…" class="col-span-3 rounded-xl border border-line px-3 py-2 text-sm">
-                    <input type="text" name="new_images[{{ $i }}][tags]" placeholder="exterior, facade" class="col-span-2 rounded-xl border border-line px-3 py-2 text-sm">
+                <div class="mt-2 grid gap-2 sm:grid-cols-4">
+                    <input type="file" name="new_images[{{ $i }}][file]" accept="image/jpeg,image/png,image/webp" aria-label="{{ __('admin.listing_form.photo_file') }}" class="rounded-xl border border-line px-3 py-2 text-sm">
+                    <input type="url" name="new_images[{{ $i }}][url]" placeholder="{{ __('admin.listing_form.photo_url') }}" class="rounded-xl border border-line px-3 py-2 text-sm">
+                    <input type="text" name="new_images[{{ $i }}][tags]" placeholder="exterior, facade" class="rounded-xl border border-line px-3 py-2 text-sm">
                     <input type="text" name="new_images[{{ $i }}][alt]" placeholder="{{ __('admin.listing_form.alt_text') }}" class="rounded-xl border border-line px-3 py-2 text-sm">
                 </div>
             @endfor

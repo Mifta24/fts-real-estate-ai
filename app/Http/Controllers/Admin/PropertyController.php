@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ResolvesCurrentAgency;
 use App\Http\Controllers\Controller;
 use App\Models\Agency;
 use App\Models\Property;
+use App\Models\PropertyImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,6 +16,8 @@ use Illuminate\View\View;
 class PropertyController extends Controller
 {
     use ResolvesCurrentAgency;
+
+    private const MAX_IMAGE_KILOBYTES = 5120;
 
     public function index(Request $request): View
     {
@@ -112,6 +115,7 @@ class PropertyController extends Controller
             'is_featured' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'new_images.*.file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.self::MAX_IMAGE_KILOBYTES],
         ]);
 
         $amenities = collect(explode(',', (string) ($data['amenities'] ?? '')))
@@ -167,16 +171,28 @@ class PropertyController extends Controller
     {
         $deleteIds = collect($request->input('delete_images', []))->map(fn ($id) => (int) $id);
         if ($deleteIds->isNotEmpty()) {
-            $property->images()->whereIn('id', $deleteIds)->delete();
+            $property->images()->whereIn('id', $deleteIds)->get()->each(function (PropertyImage $image) {
+                if ($image->image_path) {
+                    PropertyImage::disk()->delete($image->image_path);
+                }
+
+                $image->delete();
+            });
         }
 
-        $newImages = collect($request->input('new_images', []))
-            ->filter(fn ($row) => filled($row['url'] ?? null) && filter_var($row['url'], FILTER_VALIDATE_URL) && Str::startsWith($row['url'], ['http://', 'https://']));
-
         $sort = $property->images()->max('sort_order') + 1;
-        foreach ($newImages as $row) {
+        foreach ($request->all()['new_images'] ?? [] as $index => $row) {
+            $file = $request->file("new_images.{$index}.file");
+            $url = $row['url'] ?? null;
+            $hasValidUrl = filled($url) && filter_var($url, FILTER_VALIDATE_URL) && Str::startsWith($url, ['http://', 'https://']);
+
+            if (! $file && ! $hasValidUrl) {
+                continue;
+            }
+
             $property->images()->create([
-                'image_url' => $row['url'],
+                'image_path' => $file ? $file->store("properties/{$property->id}", config('filesystems.property_images_disk')) : null,
+                'image_url' => $file ? null : $url,
                 'alt_text' => $row['alt'] ?? $property->name,
                 'tags' => collect(explode(',', $row['tags'] ?? ''))->map(fn ($tag) => trim($tag))->filter()->values()->all(),
                 'sort_order' => $sort++,

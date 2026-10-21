@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +25,11 @@ class PropertyImage extends Model
         ];
     }
 
+    public static function disk(): Filesystem
+    {
+        return Storage::disk(config('filesystems.property_images_disk'));
+    }
+
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
@@ -35,7 +41,7 @@ class PropertyImage extends Model
             return $this->image_url;
         }
 
-        return $this->image_path ? Storage::disk('public')->url($this->image_path) : null;
+        return $this->image_path ? static::disk()->url($this->image_path) : null;
     }
 
     public function hasTag(string $tag): bool
