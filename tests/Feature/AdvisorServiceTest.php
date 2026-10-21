@@ -114,6 +114,46 @@ class AdvisorServiceTest extends TestCase
         Http::assertSent(fn (Request $request) => collect($request['messages'])->contains(fn ($m) => $m['role'] === 'user' && str_contains($m['content'], 'System notice')));
     }
 
+    public function test_a_price_taken_from_a_tool_result_is_delivered_as_written(): void
+    {
+        Http::fake(['llm.test/*' => Http::sequence()
+            ->push($this->completion(null, [$this->toolCall('get_property_detail', ['property_slug' => 'garden-house'])]))
+            ->push($this->completion('Garden House is priced at Rp 2 miliar and fits a family.')),
+        ]);
+
+        $reply = $this->advisor->reply($this->agency, $this->conversation, 'Tell me about Garden House');
+
+        $this->assertSame('Garden House is priced at Rp 2 miliar and fits a family.', $reply->content);
+        Http::assertSentCount(2);
+    }
+
+    public function test_a_price_that_contradicts_the_tool_result_is_challenged_and_then_replaced(): void
+    {
+        Http::fake(['llm.test/*' => Http::sequence()
+            ->push($this->completion(null, [$this->toolCall('get_property_detail', ['property_slug' => 'garden-house'])]))
+            ->push($this->completion('Garden House is only Rp 1,2 miliar!'))
+            ->push($this->completion('It is a bargain at Rp 1,2 miliar.')),
+        ]);
+
+        $reply = $this->advisor->reply($this->agency, $this->conversation, 'Tell me about Garden House');
+
+        $this->assertSame(__('site.advisor.unverified_figures', [], 'en'), $reply->content);
+        $this->assertSame('property_detail', $reply->ui_payload[0]['type']);
+        Http::assertSentCount(3);
+    }
+
+    public function test_a_price_repeated_from_an_earlier_answer_needs_no_new_tool_call(): void
+    {
+        $this->conversation->messages()->create(['role' => ConversationMessage::ROLE_VISITOR, 'content' => 'How much is it?']);
+        $this->conversation->messages()->create(['role' => ConversationMessage::ROLE_ASSISTANT, 'content' => 'Garden House is Rp 2 miliar.']);
+        Http::fake(['llm.test/*' => Http::response($this->completion('As said, the price is Rp 2 miliar.'))]);
+
+        $reply = $this->advisor->reply($this->agency, $this->conversation, 'Remind me the price');
+
+        $this->assertSame('As said, the price is Rp 2 miliar.', $reply->content);
+        Http::assertSentCount(1);
+    }
+
     public function test_the_tool_loop_stops_after_the_iteration_limit_and_fails_instead_of_replying_with_nothing(): void
     {
         Http::fake(['llm.test/*' => Http::response($this->completion(null, [$this->toolCall('search_knowledge', ['query' => 'parking'])]))]);

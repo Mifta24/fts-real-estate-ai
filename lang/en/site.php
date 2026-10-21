@@ -309,6 +309,7 @@ return [
         'draft_keep' => 'Keep typing',
         'draft_discard' => 'Discard draft',
         'error' => "I'm having trouble responding right now. Please try again or contact our agents.",
+        'unverified_figures' => 'I can\'t confirm those figures right now. Please check the listing page, or I can connect you with one of our agents.',
         'slow' => 'You are sending messages very quickly. Please wait a moment and try again.',
         'retry' => 'Retry',
         'connection_error' => 'Chat could not connect. Please reload to try again.',

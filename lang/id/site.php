@@ -309,6 +309,7 @@ return [
         'draft_keep' => 'Lanjut mengetik',
         'draft_discard' => 'Buang draft',
         'error' => 'Saya sedang kesulitan menjawab. Silakan coba lagi atau hubungi agen kami.',
+        'unverified_figures' => 'Saya belum bisa memastikan angka tersebut. Silakan cek halaman listing, atau saya hubungkan dengan agen kami.',
         'slow' => 'Pesan terlalu cepat. Mohon tunggu sebentar lalu coba lagi.',
         'retry' => 'Coba lagi',
         'connection_error' => 'Chat belum tersambung. Muat ulang halaman untuk mencoba lagi.',

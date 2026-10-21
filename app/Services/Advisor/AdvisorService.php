@@ -7,6 +7,7 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Services\Viewing\ViewingService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -35,9 +36,10 @@ class AdvisorService
      */
     private const REPLY_BUDGET_SECONDS = 85;
 
-    private const UNBACKED_DATA_PATTERN = '/(?:rp\.?|idr|usd|jpy|¥|\$)\s?\d|\d[\d.,]*\s?(?:rb|ribu|juta|jt|miliar|milyar)\b|\[[^\]]+\]/iu';
-
-    public function __construct(private readonly ContentGuard $contentGuard) {}
+    public function __construct(
+        private readonly ContentGuard $contentGuard,
+        private readonly FigureGuard $figureGuard,
+    ) {}
 
     public function startConversation(Agency $agency, string $locale = 'id'): Conversation
     {
@@ -136,9 +138,15 @@ class AdvisorService
         return (string) $conversation->messages()->where('role', ConversationMessage::ROLE_VISITOR)->latest('id')->value('content');
     }
 
-    private function claimsToolData(string $text): bool
+    /**
+     * A reply is unbacked when it leaves template placeholders in or states
+     * an amount that no tool result, earlier message or visitor input holds.
+     *
+     * @param  list<float>  $backedFigures
+     */
+    private function claimsUnbackedData(string $text, array $backedFigures): bool
     {
-        return preg_match(self::UNBACKED_DATA_PATTERN, $text) === 1;
+        return $this->figureGuard->hasPlaceholder($text) || $this->figureGuard->hasUnbackedAmount($text, $backedFigures);
     }
 
     private function answer(Agency $agency, Conversation $conversation): ConversationMessage
@@ -155,47 +163,73 @@ class AdvisorService
         $uiPayloads = [];
         $deadline = microtime(true) + self::REPLY_BUDGET_SECONDS;
 
-        $message = $this->chatCompletion($messages, $definitions, $deadline);
-
-        if (empty($message['tool_calls']) && $this->claimsToolData($message['content'] ?? '')) {
-            $messages[] = ['role' => 'assistant', 'content' => $message['content']];
-            $messages[] = ['role' => 'user', 'content' => '[System notice: your last reply stated a price or instalment, or pretended to show listing cards, without calling a tool. Never state a property price, mortgage figure or viewing time from memory. Call search_properties, get_property_detail, simulate_mortgage or check_viewing_slots now, or ask the visitor for the details you still need.]'];
-
-            $message = $this->chatCompletion($messages, $definitions, $deadline);
+        $backedFigures = [];
+        foreach (array_filter($messages, fn (array $entry) => $entry['role'] !== 'system') as $entry) {
+            array_push($backedFigures, ...$this->figureGuard->figuresIn((string) ($entry['content'] ?? '')));
         }
 
+        $message = $this->chatCompletion($messages, $definitions, $deadline);
+
         $iterations = 0;
-        while (! empty($message['tool_calls']) && $iterations < self::MAX_TOOL_ITERATIONS) {
-            $iterations++;
+        $corrected = false;
 
-            $messages[] = [
-                'role' => 'assistant',
-                'content' => $message['content'] ?? '',
-                'tool_calls' => $message['tool_calls'],
-            ];
-
-            foreach ($message['tool_calls'] as $call) {
-                $name = $call['function']['name'] ?? '';
-                $input = json_decode($call['function']['arguments'] ?? '{}', true) ?? [];
-
-                $result = $tools->dispatch($name, $input);
-
-                $toolLog[] = ['name' => $name, 'input' => $input];
-                if ($result['ui'] !== null) {
-                    $uiPayloads[] = $result['ui'];
+        while (true) {
+            if (! empty($message['tool_calls'])) {
+                if ($iterations >= self::MAX_TOOL_ITERATIONS) {
+                    break;
                 }
 
+                $iterations++;
+
                 $messages[] = [
-                    'role' => 'tool',
-                    'tool_call_id' => $call['id'] ?? '',
-                    'content' => $result['text'],
+                    'role' => 'assistant',
+                    'content' => $message['content'] ?? '',
+                    'tool_calls' => $message['tool_calls'],
                 ];
+
+                foreach ($message['tool_calls'] as $call) {
+                    $name = $call['function']['name'] ?? '';
+                    $input = json_decode($call['function']['arguments'] ?? '{}', true) ?? [];
+
+                    $result = $tools->dispatch($name, $input);
+
+                    $toolLog[] = ['name' => $name, 'input' => $input];
+                    if ($result['ui'] !== null) {
+                        $uiPayloads[] = $result['ui'];
+                    }
+
+                    array_push($backedFigures, ...$this->figureGuard->figuresInData(json_decode($result['text'], true) ?? $result['text']));
+
+                    $messages[] = [
+                        'role' => 'tool',
+                        'tool_call_id' => $call['id'] ?? '',
+                        'content' => $result['text'],
+                    ];
+                }
+
+                $message = $this->chatCompletion($messages, $definitions, $deadline);
+
+                continue;
             }
+
+            if ($corrected || ! $this->claimsUnbackedData((string) ($message['content'] ?? ''), $backedFigures)) {
+                break;
+            }
+
+            $corrected = true;
+            $messages[] = ['role' => 'assistant', 'content' => $message['content']];
+            $messages[] = ['role' => 'user', 'content' => '[System notice: your last reply stated a price, instalment or other amount that no tool returned, or pretended to show listing cards. Never state a property price, mortgage figure or viewing time from memory. Call search_properties, get_property_detail, simulate_mortgage or check_viewing_slots now, or ask the visitor for the details you still need.]'];
 
             $message = $this->chatCompletion($messages, $definitions, $deadline);
         }
 
         $text = trim((string) ($message['content'] ?? ''));
+
+        if ($text !== '' && $this->claimsUnbackedData($text, $backedFigures)) {
+            Log::warning('Advisor reply stated figures no tool returned; replaced it', ['conversation_id' => $conversation->id, 'reply' => $text]);
+
+            $text = __('site.advisor.unverified_figures', [], $conversation->locale);
+        }
 
         if ($this->contentGuard->isOffensive($text)) {
             return $this->refuse($conversation, $this->lastVisitorMessage($conversation));
