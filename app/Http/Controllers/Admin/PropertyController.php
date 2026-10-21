@@ -48,7 +48,7 @@ class PropertyController extends Controller
         $property = $agency->properties()->create($this->validated($request, $agency));
         $this->syncImages($property, $request);
 
-        return redirect()->route('admin.properties.index')->with('status', "Listing \"{$property->name}\" created.");
+        return redirect()->route('admin.properties.index')->with('status', __('admin.listings.created', ['name' => $property->name]));
     }
 
     public function edit(Request $request, Property $property): View
@@ -69,7 +69,7 @@ class PropertyController extends Controller
         $property->update($this->validated($request, $agency, $property));
         $this->syncImages($property, $request);
 
-        return redirect()->route('admin.properties.index')->with('status', "Listing \"{$property->name}\" updated.");
+        return redirect()->route('admin.properties.index')->with('status', __('admin.listings.updated', ['name' => $property->name]));
     }
 
     public function destroy(Request $request, Property $property): RedirectResponse
@@ -79,7 +79,7 @@ class PropertyController extends Controller
 
         $property->delete();
 
-        return redirect()->route('admin.properties.index')->with('status', 'Listing deleted.');
+        return redirect()->route('admin.properties.index')->with('status', __('admin.listings.deleted'));
     }
 
     /**

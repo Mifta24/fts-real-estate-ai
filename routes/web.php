@@ -10,6 +10,7 @@ use App\Http\Controllers\AgencyPageController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\MortgageController;
 use App\Http\Controllers\ViewingController;
+use App\Http\Middleware\SetAdminLocale;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [AgencyPageController::class, 'index'])->name('home');
@@ -20,7 +21,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('login', [LoginController::class, 'store'])->middleware('throttle:5,1')->name('login.store');
     });
 
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', SetAdminLocale::class])->group(function () {
         Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 

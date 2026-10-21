@@ -49,6 +49,6 @@ class ViewingController extends Controller
 
         $viewing->update(['status' => $data['status']]);
 
-        return back()->with('status', "Viewing {$viewing->reference} marked as {$data['status']}.");
+        return back()->with('status', __('admin.viewings.updated', ['reference' => $viewing->reference, 'status' => __('admin.viewing_status.'.$data['status'])]));
     }
 }

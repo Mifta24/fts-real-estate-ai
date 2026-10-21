@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Admin' }} — {{ auth()->user()?->currentAgency()?->name ?? config('app.name') }}</title>
+    <title>{{ $title ?? __('admin.nav.agency_admin') }} — {{ auth()->user()?->currentAgency()?->name ?? config('app.name') }}</title>
 
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -16,17 +16,17 @@
                 <span class="brand-mark bg-white! text-navy!" aria-hidden="true">{{ mb_substr(auth()->user()?->currentAgency()?->name ?? 'F', 0, 1) }}</span>
                 <span class="min-w-0">
                     <span class="block truncate text-sm font-semibold">{{ auth()->user()?->currentAgency()?->name }}</span>
-                    <span class="block text-xs text-white/60">Agency admin</span>
+                    <span class="block text-xs text-white/60">{{ __('admin.nav.agency_admin') }}</span>
                 </span>
             </div>
             <nav class="flex gap-1 overflow-x-auto px-3 pb-3 text-sm md:flex-col md:pb-0">
                 @php
                     $navItems = [
-                        ['route' => 'admin.dashboard', 'label' => 'Dashboard'],
-                        ['route' => 'admin.properties.index', 'label' => 'Listings'],
-                        ['route' => 'admin.viewings.index', 'label' => 'Viewings'],
-                        ['route' => 'admin.knowledge-items.index', 'label' => 'Knowledge base'],
-                        ['route' => 'admin.handovers.index', 'label' => 'Handovers'],
+                        ['route' => 'admin.dashboard', 'label' => __('admin.nav.dashboard')],
+                        ['route' => 'admin.properties.index', 'label' => __('admin.nav.listings')],
+                        ['route' => 'admin.viewings.index', 'label' => __('admin.nav.viewings')],
+                        ['route' => 'admin.knowledge-items.index', 'label' => __('admin.nav.knowledge_base')],
+                        ['route' => 'admin.handovers.index', 'label' => __('admin.nav.handovers')],
                     ];
                 @endphp
                 @foreach ($navItems as $item)
@@ -38,7 +38,7 @@
             </nav>
             <form method="POST" action="{{ route('admin.logout') }}" class="hidden p-3 md:block">
                 @csrf
-                <button type="submit" class="w-full rounded-xl px-3 py-2 text-left text-sm text-white/60 hover:bg-white/10">Log out</button>
+                <button type="submit" class="w-full rounded-xl px-3 py-2 text-left text-sm text-white/60 hover:bg-white/10">{{ __('admin.nav.log_out') }}</button>
             </form>
         </aside>
 
@@ -51,7 +51,7 @@
                 @endif
 
                 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-                    <h1 class="display text-4xl">{{ $title ?? 'Dashboard' }}</h1>
+                    <h1 class="display text-4xl">{{ $title ?? __('admin.nav.dashboard') }}</h1>
                     {{ $actions ?? '' }}
                 </div>
 
