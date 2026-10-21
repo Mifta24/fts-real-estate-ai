@@ -48,7 +48,11 @@ function initAdvisor() {
     let busy = false;
     let handedOver = false;
     let knownMessageCount = 0;
+    const POLL_MIN_MS = 4000;
+    const POLL_MAX_MS = 30000;
     let pollTimer = null;
+    let pollDelay = POLL_MIN_MS;
+    let polling = false;
     let isOpen = false;
 
     // --- small DOM helpers ---
@@ -397,7 +401,11 @@ function initAdvisor() {
 
     async function fetchHistory(token) {
         const response = await fetch(`${config.historyUrl}?visitor_token=${encodeURIComponent(token)}`, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error('history_unavailable');
+        if (!response.ok) {
+            const error = new Error('history_unavailable');
+            error.status = response.status;
+            throw error;
+        }
         return response.json();
     }
 
@@ -419,20 +427,51 @@ function initAdvisor() {
         banner.hidden = false;
         setStatus(labels.statusWaiting, 'waiting');
         setBusy(busy);
-        if (!pollTimer) pollTimer = setInterval(pollForAgentReplies, 4000);
+        startPolling();
     }
 
     function clearHandedOver() {
         handedOver = false;
         banner.hidden = true;
         setBusy(busy);
-        clearInterval(pollTimer);
+        stopPolling();
+    }
+
+    // Agent replies are fetched by polling. The delay grows while nothing new
+    // arrives, polling pauses while the tab is hidden, and a failing or
+    // rate-limited request backs off, so idle conversations stay cheap.
+    function startPolling() {
+        if (pollTimer || polling || document.hidden) return;
+        pollDelay = POLL_MIN_MS;
+        schedulePoll();
+    }
+
+    function stopPolling() {
+        clearTimeout(pollTimer);
         pollTimer = null;
     }
 
+    function schedulePoll() {
+        pollTimer = setTimeout(pollForAgentReplies, pollDelay);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!handedOver) return;
+
+        if (document.hidden) {
+            stopPolling();
+        } else if (!pollTimer && !polling) {
+            pollDelay = POLL_MIN_MS;
+            pollForAgentReplies();
+        }
+    });
+
     async function pollForAgentReplies() {
+        pollTimer = null;
         const token = localStorage.getItem(config.storageKey);
-        if (!token) return;
+        if (!token || !handedOver) return;
+
+        polling = true;
 
         try {
             const data = await fetchHistory(token);
@@ -442,12 +481,22 @@ function initAdvisor() {
                 window.siteSound?.play('incoming');
                 knownMessageCount = data.messages.length;
                 scrollToBottom();
+                pollDelay = POLL_MIN_MS;
+            } else {
+                pollDelay = Math.min(pollDelay * 1.5, POLL_MAX_MS);
             }
 
-            if (data.status !== 'handed_over') clearHandedOver();
-        } catch {
-            // transient network hiccup — try again on the next tick
+            if (data.status !== 'handed_over') {
+                clearHandedOver();
+                return;
+            }
+        } catch (error) {
+            pollDelay = error.status === 429 ? POLL_MAX_MS : Math.min(pollDelay * 2, POLL_MAX_MS);
+        } finally {
+            polling = false;
         }
+
+        if (handedOver && !document.hidden) schedulePoll();
     }
 
     const sceneOf = () => document.body.dataset.scene || 'home';
