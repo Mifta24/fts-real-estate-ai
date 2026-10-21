@@ -9,6 +9,7 @@ use App\Services\Advisor\AdvisorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
@@ -113,14 +114,32 @@ class AdvisorServiceTest extends TestCase
         Http::assertSent(fn (Request $request) => collect($request['messages'])->contains(fn ($m) => $m['role'] === 'user' && str_contains($m['content'], 'System notice')));
     }
 
-    public function test_the_tool_loop_stops_after_the_iteration_limit(): void
+    public function test_the_tool_loop_stops_after_the_iteration_limit_and_fails_instead_of_replying_with_nothing(): void
     {
         Http::fake(['llm.test/*' => Http::response($this->completion(null, [$this->toolCall('search_knowledge', ['query' => 'parking'])]))]);
 
-        $reply = $this->advisor->reply($this->agency, $this->conversation, 'Is there parking?');
+        try {
+            $this->advisor->reply($this->agency, $this->conversation, 'Is there parking?');
+            $this->fail('Expected an empty reply to be reported as a failure.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('empty reply after 6 tool rounds', $e->getMessage());
+        }
+
+        Http::assertSentCount(7);
+        $this->assertSame(0, $this->conversation->messages()->count());
+    }
+
+    public function test_an_empty_reply_with_cards_is_still_delivered(): void
+    {
+        Http::fake(['llm.test/*' => Http::sequence()
+            ->push($this->completion(null, [$this->toolCall('get_property_detail', ['property_slug' => 'garden-house'])]))
+            ->push($this->completion('')),
+        ]);
+
+        $reply = $this->advisor->reply($this->agency, $this->conversation, 'Show me Garden House');
 
         $this->assertNull($reply->content);
-        Http::assertSentCount(7);
+        $this->assertSame('property_detail', $reply->ui_payload[0]['type']);
     }
 
     public function test_an_offensive_visitor_message_never_reaches_the_model(): void
@@ -152,6 +171,7 @@ class AdvisorServiceTest extends TestCase
         $reply = $this->advisor->reply($this->agency, $this->conversation, 'Anyone there?');
 
         $this->assertSame(ConversationMessage::ROLE_SYSTEM, $reply->role);
+        $this->assertSame(__('site.advisor.handed_over', [], 'en'), $reply->content);
         Http::assertNothingSent();
     }
 
@@ -199,7 +219,30 @@ class AdvisorServiceTest extends TestCase
 
         $this->postJson('/demo/advisor/message', ['visitor_token' => $this->conversation->visitor_token, 'message' => 'Hi'])
             ->assertStatus(503)
-            ->assertJsonPath('error', 'advisor_unavailable');
+            ->assertJsonPath('error', 'advisor_unavailable')
+            ->assertJsonPath('message', __('site.advisor.error', [], 'en'));
+    }
+
+    public function test_the_failure_message_follows_the_conversation_language(): void
+    {
+        Http::fake(['llm.test/*' => Http::response('boom', 500)]);
+        $japanese = $this->advisor->startConversation($this->agency, 'ja');
+
+        $this->postJson('/demo/advisor/message', ['visitor_token' => $japanese->visitor_token, 'message' => 'こんにちは'])
+            ->assertStatus(503)
+            ->assertJsonPath('message', __('site.advisor.error', [], 'ja'));
+    }
+
+    public function test_a_failed_reply_is_logged_with_its_exception_and_conversation(): void
+    {
+        Http::fake(['llm.test/*' => Http::response('boom', 500)]);
+        Log::spy();
+
+        $this->postJson('/demo/advisor/message', ['visitor_token' => $this->conversation->visitor_token, 'message' => 'Hi'])->assertStatus(503);
+
+        Log::shouldHaveReceived('error')->withArgs(fn (string $message, array $context) => $message === 'Advisor reply failed'
+            && $context['conversation_id'] === $this->conversation->id
+            && $context['exception'] instanceof RuntimeException)->once();
     }
 
     public function test_the_chat_endpoint_only_serves_conversations_of_that_agency(): void

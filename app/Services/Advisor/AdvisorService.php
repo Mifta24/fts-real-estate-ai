@@ -100,7 +100,7 @@ class AdvisorService
         if ($conversation->isHandedOver()) {
             return $conversation->messages()->create([
                 'role' => ConversationMessage::ROLE_SYSTEM,
-                'content' => 'This conversation is with a property agent now. They will respond shortly.',
+                'content' => __('site.advisor.handed_over', [], $conversation->locale),
             ]);
         }
 
@@ -199,6 +199,10 @@ class AdvisorService
 
         if ($this->contentGuard->isOffensive($text)) {
             return $this->refuse($conversation, $this->lastVisitorMessage($conversation));
+        }
+
+        if ($text === '' && $uiPayloads === []) {
+            throw new RuntimeException('Local LLM returned an empty reply'.($iterations >= self::MAX_TOOL_ITERATIONS ? " after {$iterations} tool rounds." : '.'));
         }
 
         // A tool (e.g. request_human_handover) may have changed the

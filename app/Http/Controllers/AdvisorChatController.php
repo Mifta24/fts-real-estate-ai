@@ -62,11 +62,15 @@ class AdvisorChatController extends Controller
         try {
             $assistantMessage = $this->advisor->reply($agency, $conversation, $data['message']);
         } catch (\Throwable $e) {
-            Log::error('Advisor reply failed', ['agency_id' => $agency->id, 'error' => $e->getMessage()]);
+            Log::error('Advisor reply failed', [
+                'agency_id' => $agency->id,
+                'conversation_id' => $conversation->id,
+                'exception' => $e,
+            ]);
 
             return response()->json([
                 'error' => 'advisor_unavailable',
-                'message' => 'The AI Property Advisor is temporarily unavailable. Please try again in a moment.',
+                'message' => __('site.advisor.error', [], $conversation->locale),
             ], 503);
         }
 
