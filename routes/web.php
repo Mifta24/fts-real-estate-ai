@@ -42,7 +42,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 });
 
-Route::prefix('{agencySlug}')->group(function () {
+Route::prefix('{agencySlug}')->where(['agencySlug' => '[a-z0-9]+(?:-[a-z0-9]+)*'])->group(function () {
     Route::get('/', [AgencyPageController::class, 'home'])->name('agency.home');
     Route::get('listings', [AgencyPageController::class, 'listings'])->name('agency.listings');
     Route::get('listings/{propertySlug}', [AgencyPageController::class, 'listing'])->name('agency.listing');

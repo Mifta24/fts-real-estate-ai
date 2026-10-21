@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 /**
  * A real estate agency (or developer marketing office) with its own public
@@ -137,6 +138,15 @@ class Agency extends Model
         };
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (Agency $agency) {
+            if (in_array($agency->slug, static::reservedSlugs(), true)) {
+                throw new InvalidArgumentException("The slug \"{$agency->slug}\" is reserved for application routes.");
+            }
+        });
+    }
+
     public static function generateUniqueSlug(string $name): string
     {
         $base = Str::slug($name) ?: 'agency';
@@ -156,7 +166,7 @@ class Agency extends Model
         return [
             'admin', 'login', 'logout', 'register', 'pricing', 'dashboard',
             'api', 'terms', 'privacy', 'forgot-password', 'reset-password',
-            'verify-email', 'confirm-password', 'storage', 'build', 'account',
+            'verify-email', 'confirm-password', 'storage', 'build', 'account', 'up',
         ];
     }
 }
